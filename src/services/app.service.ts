@@ -12,7 +12,7 @@ export class AppService {
 
   constructor(turnkeyConfig: TurnkeyConfig, openaiApiKey: string) {
     this.turnkeyService = new TurnkeyService(turnkeyConfig);
-    this.policyService = new PolicyService();
+    this.policyService = new PolicyService(this.turnkeyService);
     this.paymentIntentService = new PaymentIntentService(this.policyService, this.turnkeyService);
     this.aiAgentService = new AIAgentService(openaiApiKey, this.paymentIntentService);
   }
@@ -40,10 +40,26 @@ export class AppService {
   }
 
   async getPolicyInfo() {
-    return this.policyService.getPolicy();
+    return await this.policyService.getPolicy();
   }
 
   async getDailySpend(userId: string) {
     return this.policyService.getDailySpend(userId);
+  }
+
+  async listWallets() {
+    return await this.turnkeyService.listWallets();
+  }
+
+  async getWallet(walletId: string) {
+    return await this.turnkeyService.getWallet(walletId);
+  }
+
+  async createWallet(walletName: string) {
+    return await this.turnkeyService.createWallet(walletName);
+  }
+
+  async approveWalletForPayments(walletId: string) {
+    return await this.turnkeyService.approveWalletForPayments(walletId);
   }
 }

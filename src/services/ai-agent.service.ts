@@ -25,6 +25,12 @@ export class AIAgentService {
 
   async processMessage(message: string): Promise<ChatResponse> {
     try {
+      // Get dynamic recipients from policy service
+      const policy = await this.paymentIntentService.policyService.getPolicy();
+      const availableRecipients = policy.allowed_recipients.map(r => r.id).join(", ");
+      const recipientList = policy.allowed_recipients.map(r => `- ${r.id}: ${r.name} (${r.address})`).join("\n");
+      
+      
       const completion = await this.openai.chat.completions.create({
         model: "gpt-4",
         messages: [
@@ -33,17 +39,16 @@ export class AIAgentService {
             content: `You are an AI payment assistant with delegated policy access. You can ONLY propose payment intents - you CANNOT execute them.
 
 IMPORTANT RULES:
-1. You can only propose payments to known contacts: 'ritesh' or 'wallet'
-2. Maximum single transaction: 10,000 sats
-3. Daily spending limit: 50,000 sats
+1. You can only propose payments to known contacts: ${availableRecipients}
+2. Maximum single transaction: ${policy.max_single_tx_sats} sats
+3. Daily spending limit: ${policy.daily_spend_limit_sats} sats
 4. You MUST use the create_payment_intent tool for any payment requests
 5. NEVER claim you executed a payment - you can only create pending intents
 6. If policy denies a payment, explain why and don't try to circumvent it
 7. Always be clear that the user must approve the intent separately
 
 Known contacts:
-- ritesh: Ritesh (0x150bcf49ee8e2bd9f59e991821de5b74c6d876aa)
-- wallet: Demo Wallet (0xD3deF33f82a81C4303fE7aa85c5b9D52004161f2)
+${recipientList}
 
 When a payment is requested:
 1. Use create_payment_intent tool
@@ -71,8 +76,8 @@ When a payment is requested:
                   },
                   recipient_id: {
                     type: "string",
-                    description: "ID of a known contact such as 'ritesh' or 'wallet'",
-                    enum: ["ritesh", "wallet"]
+                    description: `ID of a known contact such as: ${availableRecipients}`,
+                    enum: policy.allowed_recipients.map(r => r.id)
                   },
                   note: {
                     type: "string",

@@ -25,6 +25,69 @@ export class TurnkeyService {
     }
   }
 
+  async getWalletAccounts(walletId: string) {
+    try {
+      const response = await this.client.apiClient().getWalletAccounts({
+        walletId: walletId
+      });
+      return response;
+    } catch (error) {
+      console.error("Error getting wallet accounts:", error);
+      throw error;
+    }
+  }
+
+  async listWallets() {
+    try {
+      const response = await this.client.apiClient().getWallets({
+        organizationId: this.client.config.defaultOrganizationId
+      });
+      
+      // Add accounts to each wallet using getWalletAccounts API
+      if (response.wallets) {
+        for (const wallet of response.wallets) {
+          try {
+            const accountsResponse = await this.client.apiClient().getWalletAccounts({
+              walletId: wallet.walletId
+            });
+            
+            if (accountsResponse.accounts && accountsResponse.accounts.length > 0) {
+              (wallet as any).accounts = accountsResponse.accounts;
+            }
+          } catch (error) {
+            console.error(`Error getting accounts for wallet ${wallet.walletId}:`, error);
+          }
+        }
+      }
+      
+      return response;
+    } catch (error) {
+      console.error("Error listing wallets:", error);
+      throw error;
+    }
+  }
+
+  async createWallet(walletName: string) {
+    try {
+      const response = await this.client.apiClient().createWallet({
+        walletName: walletName,
+        accounts: [
+          {
+            curve: "CURVE_SECP256K1",
+            pathFormat: "PATH_FORMAT_BIP32",
+            path: "m/44'/60'/0'/0/0", // Standard Ethereum derivation path
+            addressFormat: "ADDRESS_FORMAT_ETHEREUM"
+          }
+        ]
+      });
+      
+      return response;
+    } catch (error) {
+      console.error("Error creating wallet:", error);
+      throw error;
+    }
+  }
+
   async signTransaction(walletAddress: string, unsignedTransaction: string) {
     try {
       const response = await this.client.apiClient().signTransaction({
@@ -51,6 +114,35 @@ export class TurnkeyService {
       return response;
     } catch (error) {
       console.error("Error creating policy:", error);
+      throw error;
+    }
+  }
+
+  async approveWalletForPayments(walletId: string) {
+    try {
+      // Get wallet details
+      const walletInfo = await this.getWallet(walletId);
+      const wallet = walletInfo.wallet as any;
+      
+      if (!wallet?.accounts || wallet.accounts.length === 0) {
+        throw new Error("No accounts found in wallet");
+      }
+
+      const walletAddress = wallet.accounts[0].address;
+      const userId = process.env.REAL_USER_ID!;
+      
+      // Create Turnkey policy for this wallet address
+      const policyName = `AI Agent Policy - ${wallet.walletName} - ${Date.now()}`;
+      const response = await this.createPolicy(policyName, userId, walletAddress);
+      
+      console.log(`✅ Turnkey policy created for wallet ${wallet.walletName} (${walletAddress})`);
+      return {
+        policyId: response.policyId,
+        walletName: wallet.walletName,
+        walletAddress: walletAddress
+      };
+    } catch (error) {
+      console.error("Error approving wallet for payments:", error);
       throw error;
     }
   }

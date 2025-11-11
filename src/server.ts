@@ -131,6 +131,56 @@ app.get("/daily-spend/:userId", async (req, res) => {
   }
 });
 
+// Wallet management endpoints
+app.get("/wallets", async (req, res) => {
+  try {
+    const wallets = await appService.listWallets();
+    res.json(wallets);
+  } catch (error) {
+    console.error("Error in /wallets endpoint:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+app.get("/wallet/:walletId", async (req, res) => {
+  try {
+    const { walletId } = req.params;
+    const wallet = await appService.getWallet(walletId);
+    res.json(wallet);
+  } catch (error) {
+    console.error("Error in /wallet endpoint:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+app.post("/wallet", async (req, res) => {
+  try {
+    const { walletName } = req.body;
+    
+    if (!walletName) {
+      return res.status(400).json({ error: "walletName is required" });
+    }
+
+    const wallet = await appService.createWallet(walletName);
+    res.json(wallet);
+  } catch (error) {
+    console.error("Error in /wallet creation endpoint:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
+app.post("/approve-wallet/:walletId", async (req, res) => {
+  try {
+    const { walletId } = req.params;
+    
+    const result = await appService.approveWalletForPayments(walletId);
+    res.json(result);
+  } catch (error) {
+    console.error("Error in /approve-wallet endpoint:", error);
+    res.status(500).json({ error: "Internal server error" });
+  }
+});
+
 app.listen(port, () => {
   console.log(`🚀 AI Agent Payment Service running on port ${port}`);
   console.log(`📋 Available endpoints:`);
@@ -141,5 +191,9 @@ app.listen(port, () => {
   console.log(`   GET /intent/:intentId - Get specific intent`);
   console.log(`   GET /policy - Get policy information`);
   console.log(`   GET /daily-spend/:userId - Get daily spend`);
+  console.log(`   GET /wallets - List all wallets`);
+  console.log(`   GET /wallet/:walletId - Get specific wallet`);
+  console.log(`   POST /wallet - Create new wallet`);
+  console.log(`   POST /approve-wallet/:walletId - Approve wallet for payments`);
   console.log(`   GET /health - Health check`);
 });

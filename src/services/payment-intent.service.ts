@@ -5,7 +5,7 @@ import { TurnkeyService } from "./turnkey.service";
 
 export class PaymentIntentService {
   private intents: Map<string, PaymentIntent> = new Map();
-  private policyService: PolicyService;
+  public policyService: PolicyService; // Make public so AI agent can access it
   private turnkeyService: TurnkeyService;
 
   constructor(policyService: PolicyService, turnkeyService: TurnkeyService) {
@@ -22,7 +22,7 @@ export class PaymentIntentService {
     console.log(`Creating payment intent from delegate ${delegateId} for user ${userId}`);
     
     // Check policy
-    const policyCheck = this.policyService.checkPolicy(userId, request.recipient_id, request.amount_sats);
+    const policyCheck = await this.policyService.checkPolicy(userId, request.recipient_id, request.amount_sats);
     
     if (!policyCheck.allowed) {
       console.log(`Policy check failed: ${policyCheck.reason}`);
@@ -90,8 +90,19 @@ export class PaymentIntentService {
         };
       }
 
-      // Get wallet address from environment
-      const walletAddress = "0xD3deF33f82a81C4303fE7aa85c5b9D52004161f2"; // From your scripts
+      // Get wallet address dynamically from Turnkey using getWalletAccounts
+      const walletId = process.env.REAL_WALLET_ID!;
+      
+      const accountsResponse = await this.turnkeyService.getWalletAccounts(walletId);
+      
+      if (!accountsResponse.accounts || accountsResponse.accounts.length === 0) {
+        return {
+          status: "ERROR",
+          error: "No wallet accounts found for signing"
+        };
+      }
+      
+      const walletAddress = accountsResponse.accounts[0].address;
       
       // Convert sats to Wei (simplified conversion for demo)
       const amountWei = (intent.amount_sats * 1000000000000).toString();
