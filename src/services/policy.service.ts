@@ -9,23 +9,12 @@ export class PolicyService {
   constructor(turnkeyService?: TurnkeyService) {
     this.turnkeyService = turnkeyService;
     
-    // Initialize with base policy - recipients will be loaded dynamically
+    // Initialize with base policy - recipients will be loaded dynamically from Turnkey
     this.policy = {
       min_single_tx_sats: parseInt(process.env.MIN_SINGLE_TX_SATS || "500"), // Match Turnkey minimum policy limit
       max_single_tx_sats: parseInt(process.env.MAX_SINGLE_TX_SATS || "1000"), // Match Turnkey policy limit
       daily_spend_limit_sats: parseInt(process.env.DAILY_SPEND_LIMIT_SATS || "5000"), // Conservative daily limit
-      allowed_recipients: [
-        { 
-          id: "ritesh", 
-          address: "0x150bcf49ee8e2bd9f59e991821de5b74c6d876aa",
-          name: "Ritesh" 
-        },
-        { 
-          id: "wallet", 
-          address: "0xD3deF33f82a81C4303fE7aa85c5b9D52004161f2",
-          name: "Demo Wallet" 
-        }
-      ]
+      allowed_recipients: [] // Will be populated dynamically from Turnkey wallets
     };
   }
 
@@ -49,26 +38,8 @@ export class PolicyService {
           }
         });
         
-        // Reset to base recipients first
-        this.policy.allowed_recipients = [
-          { 
-            id: "ritesh", 
-            address: "0x150bcf49ee8e2bd9f59e991821de5b74c6d876aa",
-            name: "Ritesh" 
-          },
-          { 
-            id: "wallet", 
-            address: "0xD3deF33f82a81C4303fE7aa85c5b9D52004161f2",
-            name: "Demo Wallet" 
-          }
-        ];
-        
-        // Add dynamic recipients
-        dynamicRecipients.forEach(dr => {
-          if (!this.policy.allowed_recipients.some(sr => sr.address === dr.address)) {
-            this.policy.allowed_recipients.push(dr);
-          }
-        });
+        // Set recipients to all discovered wallets from Turnkey
+        this.policy.allowed_recipients = dynamicRecipients;
       }
     } catch (error) {
       console.error("Error loading dynamic recipients:", error);
