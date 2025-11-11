@@ -19,13 +19,10 @@ export class PaymentIntentService {
     walletId: string,
     request: CreatePaymentIntentRequest
   ): Promise<CreatePaymentIntentResponse> {
-    console.log(`Creating payment intent from delegate ${delegateId} for user ${userId}`);
-    
     // Check policy
     const policyCheck = await this.policyService.checkPolicy(userId, request.recipient_id, request.amount_sats);
     
     if (!policyCheck.allowed) {
-      console.log(`Policy check failed: ${policyCheck.reason}`);
       return {
         status: "DENIED",
         reason: policyCheck.reason
@@ -46,7 +43,6 @@ export class PaymentIntentService {
     };
 
     this.intents.set(intentId, intent);
-    console.log(`Created payment intent ${intentId} for ${request.amount_sats} sats to ${request.recipient_id}`);
 
     return {
       status: "PENDING",
@@ -55,7 +51,6 @@ export class PaymentIntentService {
   }
 
   async approvePaymentIntentAsUser(userId: string, intentId: string): Promise<ApprovePaymentIntentResponse> {
-    console.log(`User ${userId} attempting to approve intent ${intentId}`);
     
     const intent = this.intents.get(intentId);
     
@@ -118,8 +113,6 @@ export class PaymentIntentService {
 
       // Update daily spend tracking
       this.policyService.updateDailySpend(userId, intent.amount_sats);
-
-      console.log(`Payment intent ${intentId} executed successfully. TxID: ${signedTx}`);
 
       return {
         status: "EXECUTED",

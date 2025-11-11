@@ -153,7 +153,7 @@ app.get("/wallet/:walletId", async (req, res) => {
   }
 });
 
-app.post("/wallet", async (req, res) => {
+app.post("/wallets", async (req, res) => {
   try {
     const { walletName } = req.body;
     
@@ -193,7 +193,7 @@ app.listen(port, () => {
   console.log(`   GET /daily-spend/:userId - Get daily spend`);
   console.log(`   GET /wallets - List all wallets`);
   console.log(`   GET /wallet/:walletId - Get specific wallet`);
-  console.log(`   POST /wallet - Create new wallet`);
+  console.log(`   POST /wallets - Create new wallet`);
   console.log(`   POST /approve-wallet/:walletId - Approve wallet for payments`);
   console.log(`   GET /health - Health check`);
 });

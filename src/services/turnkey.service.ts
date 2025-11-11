@@ -88,19 +88,6 @@ export class TurnkeyService {
     }
   }
 
-  async signTransaction(walletAddress: string, unsignedTransaction: string) {
-    try {
-      const response = await this.client.apiClient().signTransaction({
-        type: "TRANSACTION_TYPE_ETHEREUM",
-        signWith: walletAddress,
-        unsignedTransaction: unsignedTransaction,
-      });
-      return response;
-    } catch (error) {
-      console.error("Error signing transaction:", error);
-      throw error;
-    }
-  }
 
   async createPolicy(policyName: string, userId: string, allowedAddress: string) {
     try {
@@ -135,7 +122,6 @@ export class TurnkeyService {
       const policyName = `AI Agent Policy - ${wallet.walletName} - ${Date.now()}`;
       const response = await this.createPolicy(policyName, userId, walletAddress);
       
-      console.log(`✅ Turnkey policy created for wallet ${wallet.walletName} (${walletAddress})`);
       return {
         policyId: response.policyId,
         walletName: wallet.walletName,
@@ -172,7 +158,6 @@ export class TurnkeyService {
         unsignedTransaction: serializedTx,
       });
 
-      console.log(`✅ Transaction signed successfully`);
       return response.signedTransaction || "";
     } catch (error) {
       console.error("Error signing Ethereum transaction:", error);
@@ -180,8 +165,4 @@ export class TurnkeyService {
     }
   }
 
-  // Convert sats to Wei for Ethereum transactions (1 sat = 1000000000000 wei for demo)
-  private satsToWei(sats: number): string {
-    return (sats * 1000000000000).toString();
-  }
 }

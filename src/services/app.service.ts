@@ -18,12 +18,10 @@ export class AppService {
   }
 
   async processChat(request: ChatRequest): Promise<ChatResponse> {
-    console.log(`Processing chat request from user ${request.userId}: ${request.message}`);
     return await this.aiAgentService.processMessage(request.message);
   }
 
   async approvePayment(request: ApproveRequest): Promise<ApprovePaymentIntentResponse> {
-    console.log(`Processing approval request from user ${request.userId} for intent ${request.intentId}`);
     return await this.paymentIntentService.approvePaymentIntentAsUser(request.userId, request.intentId);
   }
 

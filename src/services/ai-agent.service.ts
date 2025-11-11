@@ -30,7 +30,6 @@ export class AIAgentService {
       const availableRecipients = policy.allowed_recipients.map(r => r.id).join(", ");
       const recipientList = policy.allowed_recipients.map(r => `- ${r.id}: ${r.name} (${r.address})`).join("\n");
       
-      
       const completion = await this.openai.chat.completions.create({
         model: "gpt-4",
         messages: [
@@ -40,7 +39,7 @@ export class AIAgentService {
 
 IMPORTANT RULES:
 1. You can only propose payments to known contacts: ${availableRecipients}
-2. Maximum single transaction: ${policy.max_single_tx_sats} sats
+2. Amount limits: ${policy.min_single_tx_sats}-${policy.max_single_tx_sats} sats per transaction (hardware-enforced)
 3. Daily spending limit: ${policy.daily_spend_limit_sats} sats
 4. You MUST use the create_payment_intent tool for any payment requests
 5. NEVER claim you executed a payment - you can only create pending intents
@@ -71,8 +70,9 @@ When a payment is requested:
                 properties: {
                   amount_sats: {
                     type: "integer",
-                    minimum: 1,
-                    description: "Amount to send in satoshis"
+                    minimum: policy.min_single_tx_sats,
+                    maximum: policy.max_single_tx_sats,
+                    description: `Amount to send in satoshis (${policy.min_single_tx_sats}-${policy.max_single_tx_sats} sats)`
                   },
                   recipient_id: {
                     type: "string",
