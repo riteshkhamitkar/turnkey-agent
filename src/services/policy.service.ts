@@ -11,8 +11,8 @@ export class PolicyService {
     
     // Initialize with base policy - recipients will be loaded dynamically
     this.policy = {
-      max_single_tx_sats: parseInt(process.env.MAX_SINGLE_TX_SATS || "10000"),
-      daily_spend_limit_sats: parseInt(process.env.DAILY_SPEND_LIMIT_SATS || "50000"),
+      max_single_tx_sats: parseInt(process.env.MAX_SINGLE_TX_SATS || "1000"), // Match Turnkey policy limit
+      daily_spend_limit_sats: parseInt(process.env.DAILY_SPEND_LIMIT_SATS || "5000"), // Conservative daily limit
       allowed_recipients: [
         { 
           id: "ritesh", 

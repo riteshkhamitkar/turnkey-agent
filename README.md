@@ -24,10 +24,11 @@ A production-ready TypeScript service that implements an AI agent with dynamic w
 
 ### 🛡️ Multi-Layer Security Model
 1. **Turnkey Hardware Security**: Private keys stored in hardware security modules (HSMs)
-2. **Address Whitelisting**: Only approved Ethereum addresses can receive payments
-3. **Application Policies**: Configurable spending limits (10,000 sats/tx, 50,000 sats/day)
-4. **Explicit Approval**: Every transaction requires separate user authorization
-5. **Policy Validation**: Dual validation at Turnkey + application level
+2. **Hardware-Enforced Amount Limits**: HSM enforces 500-1000 sats per transaction (impossible to bypass)
+3. **Address Whitelisting**: Only approved Ethereum addresses can receive payments
+4. **Application Policies**: Additional validation layer (1000 sats/tx, 5000 sats/day)
+5. **Explicit Approval**: Every transaction requires separate user authorization
+6. **Dual Policy Validation**: Hardware + application level enforcement
 
 ### 🔄 Payment Intent Flow
 1. **Natural Language Input**: "Pay 1000 sats to khush"
@@ -76,15 +77,24 @@ REAL_USER_ID=your_turnkey_user_id_here
 REAL_WALLET_ID=your_turnkey_wallet_id_here
 DELEGATE_ID=chatgpt-agent
 
-# Policy limits (optional - these are the defaults)
-MAX_SINGLE_TX_SATS=10000
-DAILY_SPEND_LIMIT_SATS=50000
+# Policy limits (must match Turnkey hardware-enforced limits)
+MAX_SINGLE_TX_SATS=1000
+DAILY_SPEND_LIMIT_SATS=5000
 ```
 
-### 3. Setup Turnkey Policies
-Create the delegated policies in Turnkey:
+### 3. Setup Hardware-Enforced Policies
+Create delegated policies with hardware-enforced amount limits in Turnkey:
 ```bash
 npm run setup-policy
+```
+
+This creates policies for all existing wallets with **500-1000 sats** limits enforced at the HSM level:
+```
+✅ Ritesh Policy created with amount limits: 500-1000 sats
+✅ Wallet Policy created with amount limits: 500-1000 sats
+✅ khush Policy created with amount limits: 500-1000 sats
+✅ anzo Policy created with amount limits: 500-1000 sats
+🔒 Turnkey HSM will enforce these limits at the hardware level!
 ```
 
 ### 4. Build and Run
@@ -148,8 +158,8 @@ Example session with dynamic wallet discovery:
 🤖 AI Agent Payment CLI
 ========================
 
-💬 You: Pay 1000 sats to alice
-🤖 AI Agent: I've created a payment intent to send 1000 sats to alice. Please approve intent pi_123abc to execute the payment.
+💬 You: Pay 800 sats to alice
+🤖 AI Agent: I've created a payment intent to send 800 sats to alice. Please approve intent pi_123abc to execute the payment.
 💡 Tip: Use 'approve pi_123abc' to execute this payment
 
 💬 You: approve pi_123abc
@@ -161,17 +171,20 @@ Example session with dynamic wallet discovery:
    ID: 4c5d6e7f-8g9h-1i2j-3k4l-5m6n7o8p9q0r
    Address: 0x742d35Cc6634C0532925a3b844Bc9e7595f0bEb
 
-💬 You: Pay 2000 sats to bob
-🤖 AI Agent: I've created a payment intent to send 2000 sats to bob. Please approve intent pi_456def to execute the payment.
+💬 You: Pay 600 sats to bob
+🤖 AI Agent: I've created a payment intent to send 600 sats to bob. Please approve intent pi_456def to execute the payment.
 
-💬 You: Pay 50000 sats to charlie
-🤖 AI Agent: I can't create that payment: Recipient 'charlie' is not in allowed recipients list. Allowed: ritesh, wallet, alice, bob
+💬 You: Pay 1500 sats to charlie
+🤖 AI Agent: I can't create that payment: Amount 1500 sats exceeds maximum allowed (1000 sats). Hardware-enforced limit cannot be bypassed.
+
+💬 You: Pay 200 sats to alice
+🤖 AI Agent: I can't create that payment: Amount 200 sats is below minimum allowed (500 sats). Hardware-enforced limit cannot be bypassed.
 
 💬 You: intents
 📝 All intents (2):
-   ✅ pi_123abc: 1000 sats to alice - EXECUTED (11/11/2025, 12:46:00 AM)
+   ✅ pi_123abc: 800 sats to alice - EXECUTED (11/11/2025, 12:46:00 AM)
       TxID: 0x1a2b3c4d5e6f...
-   ⏳ pi_456def: 2000 sats to bob - PENDING (11/11/2025, 12:47:15 AM)
+   ⏳ pi_456def: 600 sats to bob - PENDING (11/11/2025, 12:47:15 AM)
 ```
 
 ### HTTP API
@@ -182,14 +195,14 @@ curl -X POST http://localhost:3000/chat \
   -H "Content-Type: application/json" \
   -d '{
     "userId": "d7e88495-6840-406d-9de0-834627877531",
-    "message": "Send 2000 sats to Ritesh"
+    "message": "Send 750 sats to Ritesh"
   }'
 ```
 
 Response:
 ```json
 {
-  "message": "I've created a payment intent to send 2000 sats to Ritesh. Please approve intent pi_456def to execute the payment.",
+  "message": "I've created a payment intent to send 750 sats to Ritesh. Please approve intent pi_456def to execute the payment.",
   "intent_id": "pi_456def",
   "status": "PENDING"
 }
@@ -257,15 +270,20 @@ GET /health
 
 ## Policy Examples
 
-### Successful Flows
-- ✅ "Pay 1000 sats to Ritesh" → Creates pending intent
-- ✅ "Send 5000 sats to wallet" → Creates pending intent
-- ✅ Daily total under 50,000 sats → Allowed
+### ✅ Successful Flows (Hardware + App Validation)
+- ✅ "Pay 500 sats to Ritesh" → Minimum limit, creates pending intent
+- ✅ "Send 750 sats to khush" → Within range, creates pending intent  
+- ✅ "Pay 1000 sats to anzo" → Maximum limit, creates pending intent
+- ✅ Daily total under 5,000 sats → Allowed by application policy
 
-### Policy Violations
-- ❌ "Pay 15000 sats to Ritesh" → Exceeds single transaction limit (10,000)
-- ❌ "Send 1000 sats to Bob" → Unknown recipient (only Ritesh, wallet allowed)
-- ❌ Daily total exceeds 50,000 sats → Daily limit exceeded
+### ❌ Hardware-Level Policy Violations (Impossible to Bypass)
+- ❌ "Pay 1500 sats to Ritesh" → **HSM blocks**: Exceeds hardware limit (1000 sats)
+- ❌ "Send 200 sats to khush" → **HSM blocks**: Below hardware minimum (500 sats)
+- ❌ "Pay 800 sats to unknown_wallet" → **HSM blocks**: Address not in hardware policy
+
+### ❌ Application-Level Policy Violations
+- ❌ Daily total exceeds 5,000 sats → Application daily limit exceeded
+- ❌ Unknown recipient not in dynamic discovery → Application validation fails
 
 ## Development
 
@@ -338,17 +356,20 @@ If I had more time, I would add:
 
 - ❌ **Auto-execute transactions**: Every payment requires explicit user approval
 - ❌ **Access private keys**: Keys remain in HSMs, never exposed to application
-- ❌ **Bypass policies**: Turnkey enforces address restrictions at hardware level
+- ❌ **Bypass hardware policies**: HSM enforces 500-1000 sats limits (impossible to override)
+- ❌ **Send below 500 sats**: Hardware minimum enforced by Turnkey HSM
+- ❌ **Send above 1000 sats**: Hardware maximum enforced by Turnkey HSM
 - ❌ **Send to unknown addresses**: Dynamic discovery only includes organization wallets
-- ❌ **Exceed spending limits**: Multi-layer validation prevents policy violations
+- ❌ **Compromise spending limits**: Even if application is hacked, HSM blocks invalid amounts
 
 #### 🔍 Security Validations
 
 **Transaction-Level Security:**
+- **Hardware amount validation**: HSM enforces 500-1000 sats per transaction
+- **Application amount validation**: Additional check for 1000 sats/tx, 5000 sats/day limits
 - Recipient address validation against dynamic wallet discovery
-- Amount validation against configurable limits (10,000 sats/tx, 50,000 sats/day)
 - User authorization required for every transaction
-- Hardware-backed signature generation
+- Hardware-backed signature generation with tamper-resistant keys
 
 **System-Level Security:**
 - Environment variables for sensitive configuration (excluded from git)
