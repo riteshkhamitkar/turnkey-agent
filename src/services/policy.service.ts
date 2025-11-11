@@ -11,6 +11,7 @@ export class PolicyService {
     
     // Initialize with base policy - recipients will be loaded dynamically
     this.policy = {
+      min_single_tx_sats: parseInt(process.env.MIN_SINGLE_TX_SATS || "500"), // Match Turnkey minimum policy limit
       max_single_tx_sats: parseInt(process.env.MAX_SINGLE_TX_SATS || "1000"), // Match Turnkey policy limit
       daily_spend_limit_sats: parseInt(process.env.DAILY_SPEND_LIMIT_SATS || "5000"), // Conservative daily limit
       allowed_recipients: [
@@ -77,11 +78,20 @@ export class PolicyService {
   async checkPolicy(userId: string, recipientId: string, amountSats: number): Promise<PolicyCheckResult> {
     // Load dynamic recipients first
     await this.loadDynamicRecipients();
+    
+    // Check if amount is below minimum limit (matches Turnkey hardware policy)
+    if (amountSats < this.policy.min_single_tx_sats) {
+      return {
+        allowed: false,
+        reason: `Amount ${amountSats} sats is below minimum single transaction limit of ${this.policy.min_single_tx_sats} sats. Hardware-enforced limit cannot be bypassed.`
+      };
+    }
+    
     // Check if amount exceeds single transaction limit
     if (amountSats > this.policy.max_single_tx_sats) {
       return {
         allowed: false,
-        reason: `Amount ${amountSats} sats exceeds maximum single transaction limit of ${this.policy.max_single_tx_sats} sats`
+        reason: `Amount ${amountSats} sats exceeds maximum single transaction limit of ${this.policy.max_single_tx_sats} sats. Hardware-enforced limit cannot be bypassed.`
       };
     }
 

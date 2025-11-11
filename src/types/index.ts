@@ -18,6 +18,7 @@ export interface Recipient {
 }
 
 export interface DelegatedPolicy {
+  min_single_tx_sats: number;
   max_single_tx_sats: number;
   daily_spend_limit_sats: number;
   allowed_recipients: Recipient[];
